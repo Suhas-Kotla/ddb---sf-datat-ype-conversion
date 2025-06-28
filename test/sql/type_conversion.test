@@ -1,0 +1,17 @@
+# Test basic type conversions
+statement ok
+LOAD 'build/release/extension/snowflake/snowflake.duckdb_extension';
+
+# Test type info function
+query I
+SELECT snowflake_type_info('INTEGER');
+----
+NUMBER(10,0)
+
+# Test type info for decimal
+query I  
+SELECT snowflake_type_info('DECIMAL(18,3)');
+----
+NUMBER(18,3)
+
+# TODO: Add more comprehensive type conversion tests 

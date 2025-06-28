@@ -1,0 +1,9 @@
+{
+  "name": "duckdb-snowflake-extension",
+  "version": "1.0.0",
+  "dependencies": [
+    "arrow",
+    "arrow-adbc"
+  ],
+  "builtin-baseline": "latest"
+} 
