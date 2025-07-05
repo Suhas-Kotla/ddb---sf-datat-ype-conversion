@@ -216,8 +216,6 @@ git push origin feature/type-conversion
 
 ## Contact and Support
 
-- **Project Lead**: [Your Name]
-- **Team Members**: [Team Member Names]
 - **Repository**: https://github.com/your-org/duckdb-snowflake-extension
 - **Issues**: Use GitHub Issues for bug reports and feature requests
 
