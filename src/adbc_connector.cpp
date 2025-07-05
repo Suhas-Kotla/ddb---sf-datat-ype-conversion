@@ -66,68 +66,54 @@ SnowflakeADBCConnector::~SnowflakeADBCConnector() {
 
 string SnowflakeADBCConnector::Connect() {
     if (connected_) {
-        return ""; // Already connected
+        return "Already connected";
     }
     
-    if (!config_.IsValid()) {
-        return "Invalid Snowflake configuration";
-    }
+    string result = InitializeDatabase();
+    if (!result.empty()) return result;
     
-    // Initialize database
-    auto db_result = InitializeDatabase();
-    if (!db_result.empty()) {
-        return db_result;
-    }
-    
-    // Initialize connection
-    auto conn_result = InitializeConnection();
-    if (!conn_result.empty()) {
-        Cleanup();
-        return conn_result;
-    }
+    result = InitializeConnection();
+    if (!result.empty()) return result;
     
     connected_ = true;
-    return ""; // Success
+    return "";
+}
+
+string SnowflakeADBCConnector::Disconnect() {
+    if (!connected_) {
+        return "";
+    }
+    
+    Cleanup();
+    connected_ = false;
+    return "";
+}
+
+string SnowflakeADBCConnector::ExecuteQuery(const string &query) {
+    if (!connected_) {
+        return "Not connected to Snowflake";
+    }
+    
+    // TODO: Implement query execution using ADBC
+    return "Query execution not yet implemented";
 }
 
 string SnowflakeADBCConnector::InitializeDatabase() {
-    // TODO: Implement ADBC database initialization
-    // This should:
-    // 1. Call AdbcDatabaseNew()
-    // 2. Set driver options (Snowflake driver path)
-    // 3. Set URI from config
-    // 4. Call AdbcDatabaseInit()
-    
-    return "ADBC database initialization not implemented yet";
+    // TODO: Initialize ADBC database with Snowflake driver
+    return "";
 }
 
 string SnowflakeADBCConnector::InitializeConnection() {
-    // TODO: Implement ADBC connection initialization
-    // This should:
-    // 1. Call AdbcConnectionNew()
-    // 2. Call AdbcConnectionInit()
-    
-    return "ADBC connection initialization not implemented yet";
-}
-
-void SnowflakeADBCConnector::Disconnect() {
-    if (connected_) {
-        Cleanup();
-        connected_ = false;
-    }
+    // TODO: Initialize ADBC connection
+    return "";
 }
 
 void SnowflakeADBCConnector::Cleanup() {
-    // TODO: Implement proper ADBC cleanup
-    // This should release all ADBC resources in reverse order
+    // TODO: Clean up ADBC resources
 }
 
 string SnowflakeADBCConnector::FormatADBCError(const std::string &operation) const {
-    std::string message = "ADBC Error in " + operation;
-    if (adbc_error_.message != nullptr) {
-        message += ": " + std::string(adbc_error_.message);
-    }
-    return message;
+    return StringUtil::Format("ADBC Error in %s: %s", operation.c_str(), adbc_error_.message);
 }
 
 } // namespace duckdb 

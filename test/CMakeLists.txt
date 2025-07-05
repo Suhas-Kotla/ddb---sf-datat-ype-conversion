@@ -1,24 +1,32 @@
 # Test configuration for DuckDB-Snowflake extension
 
-# Find Catch2 testing framework
-find_package(Catch2 3 REQUIRED)
+# Find Arrow library
+find_library(ARROW_LIBRARY
+    NAMES arrow libarrow
+    PATHS /opt/homebrew/lib /usr/local/lib /usr/lib
+    DOC "Arrow library"
+)
+
+if(NOT ARROW_LIBRARY)
+    message(FATAL_ERROR "Arrow library not found")
+endif()
 
 # Add test executable
-add_executable(test_type_converter test/cpp/test_type_converter.cpp)
+add_executable(test_type_converter cpp/test_type_converter.cpp)
 
 # Link with DuckDB and extension
 target_link_libraries(test_type_converter 
     PRIVATE 
-    Catch2::Catch2
-    duckdb
     snowflake
+    ${DUCKDB_LIBRARY}
+    ${ARROW_LIBRARY}
 )
 
 # Include directories
 target_include_directories(test_type_converter 
     PRIVATE 
-    src/include
+    ${CMAKE_SOURCE_DIR}/src/include
+    ${DUCKDB_INCLUDE_DIR}
 )
 
-# Add test
-catch_discover_tests(test_type_converter) 
+target_compile_features(test_type_converter PRIVATE cxx_std_17) 

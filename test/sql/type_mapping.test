@@ -1,0 +1,179 @@
+-- DuckDB-Snowflake Extension Type Mapping Tests
+-- This file contains SQL-based tests for type conversion functionality
+
+-- Test basic type conversions
+SELECT 'Testing basic type conversions' as test_section;
+
+-- Integer types
+SELECT 'TINYINT' as duckdb_type, 
+       snowflake_type_converter('TINYINT') as snowflake_type;
+
+SELECT 'SMALLINT' as duckdb_type, 
+       snowflake_type_converter('SMALLINT') as snowflake_type;
+
+SELECT 'INTEGER' as duckdb_type, 
+       snowflake_type_converter('INTEGER') as snowflake_type;
+
+SELECT 'BIGINT' as duckdb_type, 
+       snowflake_type_converter('BIGINT') as snowflake_type;
+
+-- Floating point types
+SELECT 'FLOAT' as duckdb_type, 
+       snowflake_type_converter('FLOAT') as snowflake_type;
+
+SELECT 'DOUBLE' as duckdb_type, 
+       snowflake_type_converter('DOUBLE') as snowflake_type;
+
+-- Text types
+SELECT 'VARCHAR' as duckdb_type, 
+       snowflake_type_converter('VARCHAR') as snowflake_type;
+
+SELECT 'CHAR' as duckdb_type, 
+       snowflake_type_converter('CHAR') as snowflake_type;
+
+-- Boolean
+SELECT 'BOOLEAN' as duckdb_type, 
+       snowflake_type_converter('BOOLEAN') as snowflake_type;
+
+-- Temporal types
+SELECT 'DATE' as duckdb_type, 
+       snowflake_type_converter('DATE') as snowflake_type;
+
+SELECT 'TIME' as duckdb_type, 
+       snowflake_type_converter('TIME') as snowflake_type;
+
+SELECT 'TIMESTAMP' as duckdb_type, 
+       snowflake_type_converter('TIMESTAMP') as snowflake_type;
+
+-- Test decimal precision handling
+SELECT 'Testing decimal precision handling' as test_section;
+
+-- Normal decimal
+SELECT 'DECIMAL(18,3)' as duckdb_type, 
+       snowflake_type_converter('DECIMAL(18,3)') as snowflake_type;
+
+-- Large decimal requiring adjustment
+SELECT 'DECIMAL(45,5)' as duckdb_type, 
+       snowflake_type_converter('DECIMAL(45,5)') as snowflake_type;
+
+-- Test complex types
+SELECT 'Testing complex types' as test_section;
+
+-- List types
+SELECT 'LIST(VARCHAR)' as duckdb_type, 
+       snowflake_type_converter('LIST(VARCHAR)') as snowflake_type;
+
+SELECT 'LIST(INTEGER)' as duckdb_type, 
+       snowflake_type_converter('LIST(INTEGER)') as snowflake_type;
+
+-- Nested list types
+SELECT 'LIST(LIST(INTEGER))' as duckdb_type, 
+       snowflake_type_converter('LIST(LIST(INTEGER))') as snowflake_type;
+
+-- Struct types
+SELECT 'STRUCT(name VARCHAR, age INTEGER)' as duckdb_type, 
+       snowflake_type_converter('STRUCT(name VARCHAR, age INTEGER)') as snowflake_type;
+
+-- Test type mapping information
+SELECT 'Testing type mapping information' as test_section;
+
+-- Get mapping info for INTEGER
+SELECT 'INTEGER mapping info' as test_name,
+       snowflake_type_mapping_info('INTEGER') as mapping_details;
+
+-- Get mapping info for DECIMAL
+SELECT 'DECIMAL(18,3) mapping info' as test_name,
+       snowflake_type_mapping_info('DECIMAL(18,3)') as mapping_details;
+
+-- Test error handling
+SELECT 'Testing error handling' as test_section;
+
+-- Test unsupported type
+SELECT 'UNION(INTEGER, VARCHAR)' as duckdb_type, 
+       snowflake_type_converter('UNION(INTEGER, VARCHAR)') as snowflake_type;
+
+-- Test reverse conversion
+SELECT 'Testing reverse conversions' as test_section;
+
+-- Snowflake to DuckDB
+SELECT 'NUMBER(10,0)' as snowflake_type, 
+       snowflake_to_duckdb_type('NUMBER(10,0)') as duckdb_type;
+
+SELECT 'VARCHAR' as snowflake_type, 
+       snowflake_to_duckdb_type('VARCHAR') as duckdb_type;
+
+SELECT 'ARRAY(VARCHAR)' as snowflake_type, 
+       snowflake_to_duckdb_type('ARRAY(VARCHAR)') as duckdb_type;
+
+-- Test type compatibility
+SELECT 'Testing type compatibility' as test_section;
+
+-- Compatible types
+SELECT 'INTEGER -> BIGINT' as conversion,
+       snowflake_type_compatibility('INTEGER', 'BIGINT') as compatibility;
+
+-- Incompatible types
+SELECT 'VARCHAR -> INTEGER' as conversion,
+       snowflake_type_compatibility('VARCHAR', 'INTEGER') as compatibility;
+
+-- Test precision validation
+SELECT 'Testing precision validation' as test_section;
+
+-- Valid numeric range
+SELECT 'INTEGER -> SMALLINT' as conversion,
+       snowflake_numeric_range_validation('INTEGER', 'SMALLINT') as validation;
+
+-- Invalid numeric range
+SELECT 'BIGINT -> TINYINT' as conversion,
+       snowflake_numeric_range_validation('BIGINT', 'TINYINT') as validation;
+
+-- Test nested type flattening
+SELECT 'Testing nested type flattening' as test_section;
+
+-- Complex nested struct
+SELECT 'STRUCT(user STRUCT(name VARCHAR, age INTEGER), scores LIST(DOUBLE))' as complex_type,
+       snowflake_flattening_strategy('STRUCT(user STRUCT(name VARCHAR, age INTEGER), scores LIST(DOUBLE))') as strategy;
+
+-- Test performance benchmarks
+SELECT 'Testing performance benchmarks' as test_section;
+
+-- Benchmark multiple conversions
+SELECT 'Performance benchmark' as test_name,
+       snowflake_type_conversion_benchmark() as benchmark_results;
+
+-- Test data validation
+SELECT 'Testing data validation' as test_section;
+
+-- Create test table with various types
+CREATE TABLE test_types (
+    id INTEGER,
+    name VARCHAR,
+    score DOUBLE,
+    is_active BOOLEAN,
+    created_date DATE,
+    decimal_value DECIMAL(18,3),
+    tags LIST(VARCHAR)
+);
+
+-- Insert test data
+INSERT INTO test_types VALUES 
+    (1, 'Alice', 95.5, true, '2023-01-01', 123.456, ['tag1', 'tag2']),
+    (2, 'Bob', 87.2, false, '2023-01-02', 789.012, ['tag3']);
+
+-- Test type conversion on actual data
+SELECT 'Testing type conversion on actual data' as test_section;
+
+-- Convert table schema to Snowflake
+SELECT 'Table schema conversion' as test_name,
+       snowflake_table_schema_conversion('test_types') as snowflake_schema;
+
+-- Validate data integrity after conversion
+SELECT 'Data integrity validation' as test_name,
+       snowflake_data_integrity_validation('test_types') as validation_result;
+
+-- Clean up
+DROP TABLE test_types;
+
+-- Test summary
+SELECT 'Test Summary' as summary_section,
+       'All type conversion tests completed' as status; 

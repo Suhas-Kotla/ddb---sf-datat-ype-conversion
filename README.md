@@ -1,165 +1,252 @@
-# DuckDB-Snowflake Extension
+# DuckDB-Snowflake Extension: Type Conversion Engine
 
-A DuckDB extension that provides seamless integration with Snowflake data warehouse through ADBC (Arrow Database Connectivity) and comprehensive type conversion between DuckDB, Arrow, and Snowflake type systems.
+A focused DuckDB extension that provides comprehensive type conversion between DuckDB, Apache Arrow, and Snowflake type systems.
 
 ## Overview
 
-This extension enables:
-- **Direct SQL queries** to Snowflake from DuckDB
-- **Bidirectional data transfer** between DuckDB and Snowflake
-- **Automatic type conversion** preserving data integrity
-- **High-performance data ingestion** using Arrow format
-- **Comprehensive type mapping** between all three type systems
+This extension implements the core type mapping logic needed for the DuckDB-Snowflake integration. It provides bidirectional conversion between all three type systems while preserving data integrity and handling precision constraints.
+
+## Features
+
+### Core Type Conversions
+- **DuckDB → Arrow → Snowflake**: Complete conversion pipeline
+- **Snowflake → DuckDB**: Reverse conversion support
+- **Direct DuckDB → Snowflake**: Optimized direct mapping
+- **Arrow → Snowflake**: Arrow integration support
+
+### Type Coverage
+- **Primitive Types**: INTEGER, FLOAT, VARCHAR, BOOLEAN, etc.
+- **Temporal Types**: DATE, TIME, TIMESTAMP, TIMESTAMP_TZ
+- **Decimal Types**: With automatic precision adjustment for Snowflake's 38-digit limit
+- **Complex Types**: LIST, STRUCT, MAP, UNION with flattening strategies
+- **Special Types**: UUID, JSON, BIT with appropriate mappings
+
+### Advanced Features
+- **Precision Management**: Automatic decimal precision adjustment
+- **Error Handling**: Comprehensive error reporting with context
+- **Type Validation**: Data integrity validation
+- **Performance Optimization**: Cached conversions and batch processing
+- **Thread Safety**: Stateless design for concurrent use
+
+## Quick Start
+
+### Basic Usage
+
+```cpp
+#include "type_converter.hpp"
+
+using namespace duckdb;
+
+// Convert DuckDB type to Snowflake
+auto result = SnowflakeTypeConverter::ConvertDuckDBToSnowflake(LogicalType::INTEGER);
+if (result.success) {
+    std::cout << "Snowflake type: " << result.result << std::endl; // "NUMBER(10,0)"
+}
+
+// Convert Snowflake type to DuckDB
+auto reverse_result = SnowflakeTypeConverter::ConvertSnowflakeToDuckDB("VARCHAR");
+if (reverse_result.success) {
+    std::cout << "DuckDB type: " << reverse_result.result.ToString() << std::endl;
+}
+```
+
+### Decimal Precision Handling
+
+```cpp
+// Handle large decimal precision
+auto decimal_type = LogicalType::DECIMAL(45, 5);
+auto result = SnowflakeTypeConverter::ConvertDuckDBToSnowflake(decimal_type);
+// Result: "NUMBER(38,0)" with precision reduced to fit Snowflake limits
+
+// Get precision adjustment details
+auto adjustment = SnowflakeTypeConverter::AdjustDecimalForSnowflake(50, 10);
+std::cout << "Adjusted: (" << (int)adjustment.adjusted_precision 
+          << "," << (int)adjustment.adjusted_scale << ")" << std::endl;
+```
+
+### Complex Type Conversion
+
+```cpp
+// Convert nested types
+auto list_type = LogicalType::LIST(LogicalType::VARCHAR);
+auto result = SnowflakeTypeConverter::ConvertDuckDBToSnowflake(list_type);
+// Result: "ARRAY(VARCHAR)"
+
+// Get conversion strategy for complex types
+auto strategy = SnowflakeTypeConverter::GetFlatteningStrategy(complex_type);
+```
 
 ## Project Structure
 
 ```
 duckdb-snowflake-extension/
-├── CMakeLists.txt              # Main build configuration
-├── vcpkg.json                  # Dependency management
-├── Makefile                    # Build convenience wrapper
 ├── src/
-│   ├── snowflake_extension.cpp # Main extension entry point
-│   ├── type_converter.cpp      # Type conversion implementation
-│   ├── adbc_connector.cpp      # ADBC connection management
-│   └── include/
-│       ├── snowflake_extension.hpp
-│       ├── type_converter.hpp
-│       └── adbc_connector.hpp
+│   ├── include/
+│   │   └── type_converter.hpp      # Main type conversion interface
+│   └── type_converter.cpp          # Implementation
 ├── test/
-│   ├── sql/                    # SQL-based tests
-│   └── cpp/                    # C++ unit tests
-├── docs/                       # Documentation
-└── examples/                   # Usage examples
+│   ├── cpp/
+│   │   └── test_type_converter.cpp # Unit tests
+│   └── sql/
+│       └── type_mapping.test       # SQL-based tests
+├── docs/
+│   └── type_mapping_reference.md   # Complete type mapping documentation
+├── examples/
+│   └── type_conversion_demo.cpp    # Usage examples
+└── README.md                       # This file
 ```
 
-## Features
+## Type Mapping Reference
 
-### Type Conversion System
-- **DuckDB → Arrow → Snowflake** conversion pipeline
-- **Automatic precision adjustment** for decimal types
-- **Comprehensive error handling** with detailed messages
-- **Support for complex types** (arrays, structs, maps)
+### Direct Mappings (No Data Loss)
+| DuckDB | Arrow | Snowflake |
+|--------|-------|-----------|
+| TINYINT | int8 | NUMBER(3,0) |
+| INTEGER | int32 | NUMBER(10,0) |
+| FLOAT | float32 | FLOAT |
+| VARCHAR | utf8 | VARCHAR |
+| BOOLEAN | boolean | BOOLEAN |
+| DATE | date32 | DATE |
 
-### ADBC Integration
-- **Native ADBC driver support** for Snowflake
-- **Connection pooling** and resource management
-- **Batch data operations** for optimal performance
-- **Secure authentication** (password, key-based, token)
+### Mappings with Constraints
+| DuckDB | Arrow | Snowflake | Constraint |
+|--------|-------|-----------|------------|
+| HUGEINT | decimal128(38,0) | NUMBER(38,0) | Precision may be lost |
+| DECIMAL(p,s) | decimal128(p,s) | NUMBER(p,s) | Max precision 38 |
+| UTINYINT | uint8 | NUMBER(3,0) | Needs CHECK constraint ≥ 0 |
 
-### SQL Functions
-- `snowflake_scan(connection, query)` - Query Snowflake data
-- `snowflake_insert(connection, table, data)` - Insert data to Snowflake
-- `snowflake_type_info(type)` - Get Snowflake type mapping
+### Complex Type Mappings
+| DuckDB | Arrow | Snowflake | Strategy |
+|--------|-------|-----------|----------|
+| LIST | list(element_type) | ARRAY(element_type) | Recursive conversion |
+| STRUCT | struct(fields) | OBJECT | Field-by-field conversion |
+| MAP | map(key,value) | MAP | Iceberg tables only |
+| UNION | union(types) | VARIANT | Discriminator handling |
 
-## Prerequisites
+## Building
 
-- **DuckDB** (latest version)
-- **CMake** 3.15 or higher
-- **C++17** compatible compiler
-- **vcpkg** for dependency management
-- **ADBC Snowflake driver**
+### Prerequisites
+- DuckDB development headers
+- CMake 3.16+
+- C++17 compiler
+- Apache Arrow (for full Arrow integration)
 
-## Installation
+### Build Instructions
 
-### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-org/duckdb-snowflake-extension.git
-cd duckdb-snowflake-extension
+mkdir build && cd build
+cmake ..
+make
 ```
 
-### 2. Install Dependencies
+### Running Tests
+
 ```bash
-# Install vcpkg dependencies
-vcpkg install arrow arrow-adbc
-
-# Set environment variable
-export VCPKG_TOOLCHAIN_PATH=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake
-```
-
-### 3. Build the Extension
-```bash
-# Release build
-make release
-
-# Or debug build
-make debug
-```
-
-### 4. Run Tests
-```bash
+# Unit tests
 make test
+
+# SQL tests
+duckdb test/sql/type_mapping.test
 ```
 
-## Usage
+## API Reference
 
-### Basic Setup
-```sql
--- Load the extension
-LOAD 'build/release/extension/snowflake/snowflake.duckdb_extension';
+### Primary Conversion Functions
 
--- Check type mappings
-SELECT snowflake_type_info('INTEGER');  -- Returns: NUMBER(10,0)
-SELECT snowflake_type_info('DECIMAL(18,3)');  -- Returns: NUMBER(18,3)
+```cpp
+// DuckDB → Arrow
+static ConversionResult<std::shared_ptr<arrow::DataType>> 
+ConvertDuckDBToArrow(const LogicalType& duckdb_type);
+
+// Arrow → Snowflake
+static ConversionResult<std::string> 
+ConvertArrowToSnowflake(const arrow::DataType& arrow_type);
+
+// DuckDB → Snowflake (direct)
+static ConversionResult<std::string> 
+ConvertDuckDBToSnowflake(const LogicalType& duckdb_type);
+
+// Snowflake → DuckDB
+static ConversionResult<LogicalType> 
+ConvertSnowflakeToDuckDB(const std::string& snowflake_type);
 ```
 
-### Query Snowflake Data
-```sql
--- Query data from Snowflake
-SELECT * FROM snowflake_scan(
-    'user:pass@account/database/schema?warehouse=my_warehouse',
-    'SELECT * FROM my_table LIMIT 1000'
-);
+### Utility Functions
+
+```cpp
+// Get comprehensive mapping information
+static ConversionResult<TypeMappingInfo> 
+GetTypeMappingInfo(const LogicalType& duckdb_type);
+
+// Check type compatibility
+static ConversionResult<std::string> 
+CheckTypeCompatibility(const LogicalType& source_type, 
+                      const LogicalType& target_type);
+
+// Handle decimal precision adjustments
+static DecimalAdjustment 
+AdjustDecimalForSnowflake(uint8_t precision, uint8_t scale);
 ```
 
-### Insert Data to Snowflake
-```sql
--- Insert DuckDB data to Snowflake
-COPY (SELECT * FROM local_table) 
-TO snowflake_insert(
-    'user:pass@account/database/schema?warehouse=my_warehouse',
-    'target_table'
-);
+## Error Handling
+
+All conversion functions return a `ConversionResult<T>` structure:
+
+```cpp
+template<typename T>
+struct ConversionResult {
+    T result;
+    bool success;
+    std::string error_message;
+};
 ```
 
-## Type Mapping
+Example error handling:
 
-| DuckDB Type | Snowflake Type | Notes |
-|-------------|----------------|-------|
-| TINYINT     | NUMBER(3,0)    | Direct mapping |
-| INTEGER     | NUMBER(10,0)   | Direct mapping |
-| BIGINT      | NUMBER(19,0)   | Direct mapping |
-| DECIMAL(p,s)| NUMBER(p,s)    | Precision ≤ 38 |
-| VARCHAR     | VARCHAR        | Direct mapping |
-| BOOLEAN     | BOOLEAN        | Direct mapping |
-| LIST        | ARRAY          | Nested types |
-| STRUCT      | OBJECT         | Nested types |
-
-## Development
-
-### Building from Source
-```bash
-# Debug build with verbose output
-make debug
-
-# Run specific tests
-cd build/debug && make test_type_converter
+```cpp
+auto result = SnowflakeTypeConverter::ConvertDuckDBToSnowflake(type);
+if (!result.success) {
+    std::cerr << "Conversion failed: " << result.error_message << std::endl;
+    // Handle error appropriately
+}
 ```
 
-### Code Formatting
-```bash
-make format
-```
+## Performance Considerations
+
+- **Caching**: Type conversions are cached for repeated operations
+- **Memory Management**: Uses shared_ptr for Arrow types and move semantics for results
+- **Batch Processing**: Supports bulk type conversion operations
+- **Thread Safety**: All functions are stateless and thread-safe
 
 ## Contributing
 
+### Development Setup
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
+3. Implement your changes
+4. Add comprehensive tests
 5. Update documentation
 6. Submit a pull request
 
+### Testing Guidelines
+- Add unit tests for new type conversions
+- Include SQL tests for integration scenarios
+- Test error conditions and edge cases
+- Validate performance impact
+
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Related Projects
+
+- [DuckDB](https://github.com/duckdb/duckdb) - In-process SQL OLAP database
+- [Apache Arrow](https://arrow.apache.org/) - Columnar in-memory data format
+- [Snowflake](https://www.snowflake.com/) - Cloud data platform
+
+## Support
+
+For questions and support:
+- Create an issue on GitHub
+- Check the [documentation](docs/)
+- Review the [examples](examples/) 

@@ -1,6 +1,5 @@
 #include "snowflake_extension.hpp"
 #include "type_converter.hpp"
-#include "adbc_connector.hpp"
 
 #include "duckdb/function/scalar_function.hpp"
 #include "duckdb/function/table_function.hpp"
